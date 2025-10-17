@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Environment
 .env
 .venv/
 .env.*
@@ -13,7 +15,10 @@ __pycache__/
 # Streamlit
 .streamlit/
 
-# Local vector DB and uploads
+# Local data (not pushed to GitHub)
+data/
+
+# Local vector DB and uploads 
 data/chroma_db/
 data/uploads/
 
