@@ -18,6 +18,20 @@ st.set_page_config(page_title="Internal Knowledge Copilot", page_icon="🧩", la
 
 st.title("🧩 Internal Knowledge Copilot")
 st.markdown("Ask questions about your internal documents with AI-powered retrieval and citations.")
+st.markdown("""
+**HOW TO USE:**  
+1. 📂 Upload your documents in the sidebar  
+2. 🧠 Build the knowledge base  
+3. 💬 Then ask questions!
+""")
+with st.expander("📘 HOW TO USE"):
+    st.markdown("""
+    1. 📂 **Upload** your documents in the sidebar  
+    2. 🧠 **Build** the knowledge base  
+    3. 💬 **Ask** your questions below!
+    """)
+
+
 
 # Paths
 UPLOAD_DIR = "data/uploads"
