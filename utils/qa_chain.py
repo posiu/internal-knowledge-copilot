@@ -1,53 +1,37 @@
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from dotenv import load_dotenv
-import os
 
-load_dotenv()
 
-def build_qa_chain(vectorstore):
+def build_qa_chain(vectorstore, limit_files=None):
     """
-    Builds a retrieval-based QA chain using GPT-4o-mini and Chroma retriever.
+    Build a QA chain that uses filtered retrieval (by 'source' metadata)
+    and produces factual answers with sources.
     """
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+    # Optional filtering by filename(s)
+    search_kwargs = {}
+    if limit_files:
+        search_kwargs["filter"] = {"source": {"$in": limit_files}}
 
-    # Custom prompt template
-    template = """
-    You are Internal Knowledge Copilot — an assistant that answers questions 
-    based strictly on provided company documents.
+    retriever = vectorstore.as_retriever(search_kwargs=search_kwargs)
 
-    Use only the retrieved context below to answer the user's question.
-    Be concise, factual, and cite the document names you used (from metadata 'source').
-
-    If the answer is not found in the documents, say:
-    "I couldn't find relevant information in the uploaded files."
-
-    ----------------
-    Context:
-    {context}
-    ----------------
-    Question: {question}
-    Answer (with citations):
-    """
-
-    prompt = PromptTemplate(
-        input_variables=["context", "question"],
-        template=template
+    template = (
+        "You are a helpful assistant that answers questions based strictly on the provided documents.\n"
+        "If the answer cannot be found in the documents, say: 'I couldn't find relevant information in the uploaded files.'\n\n"
+        "Question: {question}\n\n"
+        "Relevant context from the documents:\n{context}\n\n"
+        "Answer with a short factual response and include the filename(s) from which the information was taken."
     )
 
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.0  # 0 for factual, consistent answers
-    )
+    prompt = PromptTemplate(template=template, input_variables=["context", "question"])
+
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
-        chain_type="stuff",   # simplest and effective method for small documents
         retriever=retriever,
+        return_source_documents=True,
         chain_type_kwargs={"prompt": prompt},
-        return_source_documents=True
     )
 
     return qa_chain
-

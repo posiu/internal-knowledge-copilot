@@ -1,52 +1,83 @@
 import os
-from typing import List, Dict
+import time
+from typing import List, Any
+
+from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
-from langchain_chroma import Chroma
-from dotenv import load_dotenv
-from utils.text_splitter import split_documents
 
 
-# Load .env file for API keys
-load_dotenv()
-
-def create_or_load_vectorstore(docs: List[Dict[str, str]], persist_directory: str = "data/chroma_db"):
+def _normalize_documents(documents: List[Any]):
     """
-    Takes a list of documents [{'source':..., 'content':...}]
-    Creates embeddings and stores them in Chroma (persistent vector DB).
-    Returns the Chroma vectorstore object.
+    Accepts multiple input shapes and normalizes to (texts, metadatas) lists.
+
+    Supported shapes:
+    - ["text", "text2", ...]
+    - [{"text": "...", "source": "file.ext"}, ...]
+    - [{"page_content": "...", "metadata": {...}}, ...]
+    - [Document(page_content="...", metadata={...}), ...]
+    """
+    texts, metadatas = [], []
+    for doc in documents:
+        if isinstance(doc, str):
+            texts.append(doc)
+            metadatas.append({})
+        elif isinstance(doc, dict):
+            if "page_content" in doc:
+                texts.append(doc["page_content"])
+                metadatas.append(doc.get("metadata", {}))
+            elif "text" in doc:
+                texts.append(doc["text"])
+                metadatas.append({"source": doc.get("source", "unknown")})
+            else:
+                # fallback: join values if unknown dict schema
+                texts.append(" ".join(str(v) for v in doc.values()))
+                metadatas.append({})
+        else:
+            # likely a LangChain Document
+            texts.append(getattr(doc, "page_content", str(doc)))
+            metadatas.append(getattr(doc, "metadata", {}))
+    return texts, metadatas
+
+
+def create_or_load_vectorstore(
+    documents,
+    persist_directory: str = "data/chroma_db",
+    collection_name: str = "ikc_collection",
+):
+    """
+    Build a brand-new Chroma collection in the given persist_directory.
+    IMPORTANT: we DO NOT pass a custom client here — letting LangChain-Chroma
+    create a PersistentClient bound to persist_directory, which avoids cross-contamination.
     """
     os.makedirs(persist_directory, exist_ok=True)
 
-    print("🧠 Initializing OpenAI embeddings...")
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    embeddings = OpenAIEmbeddings()
+    texts, metadatas = _normalize_documents(documents)
 
-    print(f"💾 Storing vectors in: {persist_directory}")
-    # Split documents into chunks to avoid token limits
-    docs = split_documents(docs)
-    texts = [doc["content"] for doc in docs]
-    metadatas = [{"source": doc["source"]} for doc in docs]
-
-
-    vectorstore = Chroma.from_texts(
+    # Create a fresh collection with the explicit name
+    vs = Chroma.from_texts(
         texts=texts,
         embedding=embeddings,
         metadatas=metadatas,
-        persist_directory=persist_directory
+        persist_directory=persist_directory,
+        collection_name=collection_name,
     )
+    vs.persist()
+    time.sleep(0.1)
+    return vs
 
-    # New Chroma automatically persists when persist_directory is set
-    print(f"✅ Vector store created and saved with {len(docs)} documents.")
-    return vectorstore
 
-def load_existing_vectorstore(persist_directory: str = "data/chroma_db"):
+def load_existing_vectorstore(
+    persist_directory: str = "data/chroma_db",
+    collection_name: str = "ikc_collection",
+):
     """
-    Loads an existing Chroma vector store if it exists.
+    Load the exact existing Chroma collection from a given persist_directory.
+    Again, do NOT pass a client; let Chroma bind to the directory itself.
     """
-    if not os.path.exists(persist_directory):
-        raise ValueError("❌ No existing vector store found. Please build it first.")
-    
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    print("📂 Loading existing vector store...")
-    vectorstore = Chroma(persist_directory=persist_directory, embedding_function=embeddings)
-    return vectorstore
-
+    embeddings = OpenAIEmbeddings()
+    return Chroma(
+        persist_directory=persist_directory,
+        collection_name=collection_name,
+        embedding_function=embeddings,
+    )

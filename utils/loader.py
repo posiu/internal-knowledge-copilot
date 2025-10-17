@@ -1,62 +1,60 @@
 import os
-from typing import List, Dict
-from pypdf import PdfReader
-import docx
+from typing import List
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, TextLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-def load_text_from_pdf(file_path: str) -> str:
-    """Extracts all text from a PDF file."""
-    text = ""
-    with open(file_path, "rb") as f:
-        pdf = PdfReader(f)
-        for page in pdf.pages:
-            text += page.extract_text() or ""
-    return text.strip()
 
-def load_text_from_docx(file_path: str) -> str:
-    """Extracts all text from a DOCX file."""
-    doc = docx.Document(file_path)
-    text = "\n".join([p.text for p in doc.paragraphs])
-    return text.strip()
-
-def load_text_from_txt(file_path: str) -> str:
-    """Reads plain text from a TXT file."""
-    with open(file_path, "r", encoding="utf-8") as f:
-        return f.read().strip()
-
-def load_documents(upload_dir: str) -> List[Dict[str, str]]:
+def load_documents(upload_folder: str) -> List[dict]:
     """
-    Loads and extracts text from all supported files in a given directory.
-    Returns a list of dicts with {'source': filename, 'content': text}.
+    Load and split PDF, DOCX, and TXT files from the given folder.
+    Each document gets metadata including its source filename.
+    Returns a list of dicts ready for embedding.
     """
-    supported_ext = [".pdf", ".docx", ".txt"]
-    documents = []
+    if not os.path.exists(upload_folder):
+        raise FileNotFoundError(f"Upload folder '{upload_folder}' does not exist.")
 
-    for filename in os.listdir(upload_dir):
-        file_path = os.path.join(upload_dir, filename)
-        _, ext = os.path.splitext(filename)
+    all_docs = []
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
-        if ext.lower() not in supported_ext:
-            print(f"⚠️ Skipping unsupported file: {filename}")
+    for filename in os.listdir(upload_folder):
+        file_path = os.path.join(upload_folder, filename)
+        if not os.path.isfile(file_path):
             continue
 
+        ext = filename.lower().split(".")[-1]
         try:
-            if ext.lower() == ".pdf":
-                text = load_text_from_pdf(file_path)
-            elif ext.lower() == ".docx":
-                text = load_text_from_docx(file_path)
-            elif ext.lower() == ".txt":
-                text = load_text_from_txt(file_path)
+            if ext == "pdf":
+                loader = PyPDFLoader(file_path)
+            elif ext in ["docx", "doc"]:
+                loader = Docx2txtLoader(file_path)
+            elif ext == "txt":
+                loader = TextLoader(file_path, encoding="utf-8")
             else:
-                text = ""
-            
-            if text:
-                documents.append({"source": filename, "content": text})
-                print(f"✅ Loaded {filename} ({len(text)} characters)")
-            else:
+                print(f"⚠️ Skipping unsupported file: {filename}")
+                continue
+
+            documents = loader.load()
+            if not documents:
                 print(f"⚠️ No text extracted from {filename}")
+                continue
+
+            split_docs = splitter.split_documents(documents)
+            for doc in split_docs:
+                if not doc.page_content.strip():
+                    continue
+                doc.metadata["source"] = filename
+                all_docs.append({
+                    "page_content": doc.page_content,
+                    "metadata": doc.metadata,
+                })
 
         except Exception as e:
-            print(f"❌ Error reading {filename}: {e}")
+            print(f"❌ Error loading {filename}: {e}")
 
-    return documents
+    if not all_docs:
+        raise ValueError(
+            "No readable text extracted from any uploaded files. "
+            "Check that your PDFs/DOCX/TXT contain selectable text (not scanned images)."
+        )
 
+    return all_docs
