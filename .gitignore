@@ -24,3 +24,6 @@ data/uploads/
 
 # Misc
 *.log
+
+# Local test scripts
+test_*.py
