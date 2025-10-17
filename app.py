@@ -37,7 +37,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(CHROMA_DIR, exist_ok=True)
 
 # --- SIDEBAR ---
-st.sidebar.header("📂 Upload Documents")
+st.sidebar.header("📂 Upload documents")
 uploaded_files = st.sidebar.file_uploader(
     "Upload PDF, DOCX, or TXT files",
     type=["pdf", "docx", "txt"],
@@ -69,11 +69,11 @@ if st.sidebar.button("🧠 Rebuild Knowledge Base"):
             st.sidebar.warning("⚠️ No valid documents found.")
 
 # --- MAIN CONTENT ---
-st.subheader("💬 Ask a Question")
+st.subheader("💬 Ask a question")
 
 question = st.text_input("Enter your question:")
 
-if st.button("Get Answer"):
+if st.button("Get answer"):
     # Use the latest Chroma directory from session (if available)
     vector_dir = st.session_state.get("CHROMA_DIR", None)
 
