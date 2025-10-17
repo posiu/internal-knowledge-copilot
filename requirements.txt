@@ -1,0 +1,18 @@
+# Core app & UI
+streamlit>=1.37
+python-dotenv>=1.0.1
+
+# LangChain + OpenAI + Vector store
+langchain>=0.2.11
+langchain-community>=0.2.10
+langchain-openai>=0.1.17
+openai>=1.43.0
+chromadb>=0.5.5
+tiktoken>=0.7.0
+
+# File parsing
+pypdf>=4.2.0
+python-docx>=1.1.2
+
+# Utilities
+pandas>=2.2.2
