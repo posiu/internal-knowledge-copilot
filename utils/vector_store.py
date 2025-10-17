@@ -3,6 +3,8 @@ from typing import List, Dict
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
+from utils.text_splitter import split_documents
+
 
 # Load .env file for API keys
 load_dotenv()
@@ -19,8 +21,11 @@ def create_or_load_vectorstore(docs: List[Dict[str, str]], persist_directory: st
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
     print(f"💾 Storing vectors in: {persist_directory}")
+    # Split documents into chunks to avoid token limits
+    docs = split_documents(docs)
     texts = [doc["content"] for doc in docs]
     metadatas = [{"source": doc["source"]} for doc in docs]
+
 
     vectorstore = Chroma.from_texts(
         texts=texts,
