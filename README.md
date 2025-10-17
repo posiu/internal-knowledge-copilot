@@ -28,13 +28,13 @@ Built with **Streamlit**, **LangChain**, **OpenAI (GPT-4o-mini + embeddings)**, 
 
 ```mermaid
 flowchart TD
-    A[📂 Upload Documents<br/>PDF/DOCX/TXT] --> B[🧠 Text Extraction<br/>PyPDF / python-docx]
-    B --> C[✂️ Chunking<br/>RecursiveCharacterTextSplitter]
-    C --> D[🔢 OpenAI Embeddings<br/>text-embedding-3-small]
-    D --> E[💾 Chroma Vector DB<br/>persistent local dir]
-    F[💬 User Question<br/>Streamlit UI] --> G[🔎 Retriever<br/>Top-k relevant chunks]
-    G --> H[🤖 LLM (GPT-4o-mini)<br/>LangChain RetrievalQA + custom prompt]
-    H --> I[✅ Answer + 📚 Citations<br/>(file names + parts)]
+    A[📂 Upload Documents] --> B[🧠 Text Extraction]
+    B --> C[✂️ Chunking]
+    C --> D[🔢 OpenAI Embeddings]
+    D --> E[💾 Chroma Vector DB]
+    F[💬 User Question] --> G[🔎 Retriever]
+    G --> H[🤖 LLM GPT-4o-mini]
+    H --> I[✅ Answer + Citations]
     E --> G
 ```
 
