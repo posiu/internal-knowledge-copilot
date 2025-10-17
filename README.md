@@ -42,7 +42,7 @@ flowchart TD
 
 ## 📦 Requirements
 
-- Python 3.10+ (tested on 3.11/3.13)
+- Python 3.10+ (tested on 3.13)
 - OpenAI API key
 - OS: macOS / Windows / Linux
 
