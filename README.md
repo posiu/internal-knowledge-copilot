@@ -6,12 +6,6 @@ Built with **Streamlit**, **LangChain**, **OpenAI (GPT-4o-mini + embeddings)**, 
 
 ---
 
-## 🚀 Live Demo
-
-**https://knowledge-base-copilot.streamlit.app**
-
----
-
 ## ✨ Features
 
 - 📂 Upload multiple files (PDF, DOCX, TXT)
